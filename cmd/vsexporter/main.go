@@ -64,8 +64,14 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 		slog.Debug("gathered volumes", "volumes", len(volumes.Volumes))
 
 		for _, volume := range volumes.Volumes {
-			if volume == nil {
-				slog.Debug("found nil volume; skipping")
+			if volume.UsageData == nil {
+				slog.Debug("found volume with unset usage data; skipping",
+					"name", volume.Name,
+					"created_at", volume.CreatedAt,
+					"scope", volume.Scope,
+					"path", volume.Mountpoint,
+				)
+
 				continue
 			}
 
