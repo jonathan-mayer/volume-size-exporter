@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,14 +52,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-
-  create_release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -66,3 +59,5 @@ jobs:
           tag: ${{ github.ref_name }}
           name: v${{ github.ref_name }}
           generateReleaseNotes: true
+          prerelease: ${{steps.check-tag.outputs.full_release != 'true'}}
+          makeLatest: ${{steps.check-tag.outputs.full_release == 'true'}}
