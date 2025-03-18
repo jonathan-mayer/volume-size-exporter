@@ -79,7 +79,7 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 				"path":       volume.Mountpoint,
 				"scope":      volume.Scope,
 				"created_at": volume.CreatedAt,
-			}).Add(float64(volume.UsageData.Size))
+			}).Set(float64(volume.UsageData.Size))
 		}
 	}
 }
