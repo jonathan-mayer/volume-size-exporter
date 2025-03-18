@@ -1,0 +1,7 @@
+config:
+  line-length:
+    line_length: 140 # set max length of lines to 140, which is a bit more reasonable than the 80 (default)
+  first-line-heading: false # disable because of issue templates
+customRules:
+  - sentences-per-line
+  - "@jonathan-mayer/markdownlint-rule-titlecase"

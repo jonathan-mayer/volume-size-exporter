@@ -1,0 +1,66 @@
+name: Release new version
+
+on:
+  push:
+    tags:
+      - "^[0-9]+.[0-9]+.[0-9]+$"
+      - "^[0-9]+.[0-9]+.[0-9]+-[a-zA-Z0-9]+.[0-9]+$"
+
+jobs:
+  build:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Tag for Full Release
+        id: check-tag
+        run: |
+          if [[ ${{ github.event.ref_name }} =~ ^[0-9]+.[0-9]+.[0-9]+$ ]]; then
+              echo "full_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/jonathan-mayer/volume-size-exporter
+          tags: |
+            ${{ steps.check-tag.outputs.full_release == 'true' && 'latest' || 'dev' }}
+            ${{ github.event.ref_name }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        id: build-push
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create GitHub Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.ref_name }}
+          name: v${{ github.event.ref_name }}
+          generateReleaseNotes: true
