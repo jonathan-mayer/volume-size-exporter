@@ -19,7 +19,7 @@ jobs:
       - name: Check Tag for Full Release
         id: check-tag
         run: |
-          if [[ $GITHUB_REF_NAME =~ ^[0-9]+.[0-9]+.[0-9]+$ ]]; then
+          if [[ ${{ github.ref_name }} =~ ^[0-9]+.[0-9]+.[0-9]+$ ]]; then
               echo "full_release=true" >> $GITHUB_OUTPUT
           fi
 
@@ -31,7 +31,7 @@ jobs:
             ghcr.io/jonathan-mayer/volume-size-exporter
           tags: |
             ${{ steps.check-tag.outputs.full_release == 'true' && 'latest' || 'dev' }}
-            ${{ github.event.ref_name }}
+            ${{ github.ref_name }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -63,6 +63,6 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ github.event.ref_name }}
-          name: v${{ github.event.ref_name }}
+          tag: ${{ github.ref_name }}
+          name: v${{ github.ref_name }}
           generateReleaseNotes: true
