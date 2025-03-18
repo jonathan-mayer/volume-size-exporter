@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -55,26 +55,17 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 	for {
 		time.Sleep(interval)
 
-		volumes, err := cli.VolumeList(ctx, volume.ListOptions{})
+		diskusage, err := cli.DiskUsage(ctx, types.DiskUsageOptions{
+			Types: []types.DiskUsageObject{types.VolumeObject},
+		})
 		if err != nil {
 			slog.Error("error getting volumes", "error", err)
 			return
 		}
 
-		slog.Debug("gathered volumes", "volumes", len(volumes.Volumes))
+		slog.Debug("gathered volumes", "volumes", len(diskusage.Volumes))
 
-		for _, volume := range volumes.Volumes {
-			if volume.UsageData == nil {
-				slog.Debug("found volume with unset usage data; skipping",
-					"name", volume.Name,
-					"created_at", volume.CreatedAt,
-					"scope", volume.Scope,
-					"path", volume.Mountpoint,
-				)
-
-				continue
-			}
-
+		for _, volume := range diskusage.Volumes {
 			slog.Debug("updating metric for volume",
 				"name", volume.Name,
 				"size", volume.UsageData.Size,
