@@ -14,14 +14,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const interval = 10 * time.Second
+const interval = 15 * time.Second
 
 func main() {
-	ctx := context.Background()
-
 	if os.Getenv("DEBUG") == "true" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
+
+	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -55,12 +55,10 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 	for {
 		time.Sleep(interval)
 
-		diskusage, err := cli.DiskUsage(ctx, types.DiskUsageOptions{
-			Types: []types.DiskUsageObject{types.VolumeObject},
-		})
+		diskusage, err := cli.DiskUsage(ctx, types.DiskUsageOptions{Types: []types.DiskUsageObject{types.VolumeObject}})
 		if err != nil {
 			slog.Error("error getting volumes", "error", err)
-			return
+			continue
 		}
 
 		slog.Debug("gathered volumes", "volumes", len(diskusage.Volumes))
