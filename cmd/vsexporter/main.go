@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -52,6 +53,8 @@ func main() {
 }
 
 func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, ctx context.Context) {
+	var lastVolumes []string
+
 	for {
 		time.Sleep(interval)
 
@@ -63,6 +66,8 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 
 		slog.Debug("gathered volumes", "volumes", len(diskusage.Volumes))
 
+		volumes := make([]string, 0, len(diskusage.Volumes))
+
 		for _, volume := range diskusage.Volumes {
 			slog.Debug("updating metric for volume",
 				"name", volume.Name,
@@ -72,12 +77,27 @@ func collectMetrics(volumeSizeMetric *prometheus.GaugeVec, cli *client.Client, c
 				"path", volume.Mountpoint,
 			)
 
+			volumes = append(volumes, volume.Name)
+
 			volumeSizeMetric.With(prometheus.Labels{
 				"name":       volume.Name,
 				"path":       volume.Mountpoint,
 				"scope":      volume.Scope,
 				"created_at": volume.CreatedAt,
 			}).Set(float64(volume.UsageData.Size))
+		}
+
+		if len(volumes) != len(lastVolumes) {
+			slog.Debug("volumes changed", "volumes", volumes, "previous", lastVolumes)
+
+			for _, volume := range lastVolumes {
+				if !slices.Contains(volumes, volume) {
+					slog.Debug("removing stale metric for volume", "name", volume)
+					volumeSizeMetric.DeletePartialMatch(prometheus.Labels{"name": volume})
+				}
+			}
+
+			lastVolumes = volumes
 		}
 	}
 }
